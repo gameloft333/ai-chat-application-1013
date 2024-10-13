@@ -1,0 +1,34 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+@layer base {
+  body {
+    @apply bg-[#2C3E50] text-white font-sans;
+  }
+}
+
+@layer components {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-thumb-gray-400 {
+    scrollbar-color: #a0aec0 #2d3748;
+  }
+  
+  .scrollbar-track-gray-700 {
+    scrollbar-track-color: #2d3748;
+  }
+}
+
+@font-face {
+  font-family: 'Belwe Bold';
+  src: url('/fonts/Belwe-Bold.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+}
+
+.font-serif {
+  font-family: 'Belwe Bold', serif;
+}
