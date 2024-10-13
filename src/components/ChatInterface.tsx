@@ -1,43 +1,36 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send } from 'lucide-react';
 import { getLLMResponse } from '../services/llm-service';
-
-interface Message {
-  text: string;
-  isUser: boolean;
-}
-
-interface Character {
-  id: string;
-  name: string;
-  image: string;
-  prompt: string;
-}
+import { Character } from '../types/character';
+import { Message } from '../types/message';
+import { MAX_CHAT_HISTORY } from '../config/app-config';
 
 interface ChatInterfaceProps {
-  selectedCharacter: Character | null;
+  selectedCharacter: Character;
+  initialMessages: Message[];
+  onUpdateHistory: (messages: Message[]) => void;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedCharacter }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ 
+  selectedCharacter, 
+  initialMessages,
+  onUpdateHistory
+}) => {
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (selectedCharacter) {
-      setMessages([{ text: `Hello! I'm your ${selectedCharacter.name}. How can I assist you today?`, isUser: false }]);
-    } else {
-      setMessages([]);
-    }
-  }, [selectedCharacter]);
-
-  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    onUpdateHistory(messages);
+  }, [messages, onUpdateHistory]);
+
   const handleSendMessage = async () => {
-    if (inputMessage.trim() === '' || !selectedCharacter) return;
+    if (inputMessage.trim() === '') return;
 
     const userMessage: Message = { text: inputMessage, isUser: true };
     setMessages(prevMessages => [...prevMessages, userMessage]);
@@ -52,11 +45,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedCharacter }) => {
         text: response.text,
         isUser: false,
       };
-      setMessages(prevMessages => [...prevMessages, aiMessage]);
+      setMessages(prevMessages => {
+        const updatedMessages = [...prevMessages, aiMessage];
+        return updatedMessages.slice(-MAX_CHAT_HISTORY);
+      });
     } catch (error) {
       console.error('Error getting LLM response:', error);
       const errorMessage: Message = {
-        text: 'I apologize, but I encountered an unexpected issue. Could you please try your request again?',
+        text: '我很抱歉,但我遇到了一个意外问题。您能再试一次吗?',
         isUser: false,
       };
       setMessages(prevMessages => [...prevMessages, errorMessage]);
@@ -66,21 +62,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedCharacter }) => {
   };
 
   return (
-    <div className="bg-[#34495E] rounded-lg shadow-lg p-4 h-[600px] flex flex-col">
-      <div className="flex-grow overflow-y-auto mb-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-700">
+    <div className="bg-white bg-opacity-10 rounded-lg shadow-2xl p-6 h-full flex flex-col">
+      <div className="flex-grow overflow-y-auto mb-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent">
         {messages.map((message, index) => (
           <div
             key={index}
-            className={`mb-2 p-2 rounded-lg ${
-              message.isUser ? 'bg-[#3498DB] text-white ml-auto' : 'bg-[#2ECC71] text-white'
-            } max-w-[70%]`}
+            className={`mb-3 p-3 rounded-lg ${
+              message.isUser
+                ? 'bg-[#81e6d9] text-gray-800 ml-auto'
+                : 'bg-gray-700 text-white'
+            } max-w-[80%]`}
           >
             {message.text}
           </div>
         ))}
         {isLoading && (
           <div className="text-center text-gray-400">
-            AI is thinking...
+            AI正在思考...
           </div>
         )}
         <div ref={messagesEndRef} />
@@ -91,14 +89,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ selectedCharacter }) => {
           value={inputMessage}
           onChange={(e) => setInputMessage(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-          placeholder="Type your message..."
-          className="flex-grow border rounded-l-lg px-4 py-2 bg-[#2C3E50] text-white focus:outline-none focus:ring-2 focus:ring-[#F1C40F]"
-          disabled={isLoading || !selectedCharacter}
+          placeholder="输入您的消息..."
+          className="flex-grow border-2 border-gray-700 rounded-l-lg px-4 py-2 bg-gray-800 text-white focus:outline-none focus:border-[#81e6d9] transition-colors"
+          disabled={isLoading}
         />
         <button
           onClick={handleSendMessage}
-          className="bg-[#E67E22] text-white px-4 py-2 rounded-r-lg hover:bg-[#D35400] transition-colors disabled:opacity-50"
-          disabled={isLoading || !selectedCharacter}
+          className="bg-[#81e6d9] text-gray-800 px-6 py-2 rounded-r-lg hover:bg-[#4fd1c5] transition-colors disabled:opacity-50"
+          disabled={isLoading}
         >
           <Send size={20} />
         </button>

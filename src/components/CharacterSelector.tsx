@@ -1,16 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { Character } from '../types/character';
 import { nameDatabase } from '../data/nameDatabase';
-
-interface Character {
-  id: string;
-  name: string;
-  image: string;
-  promptFile: string;
-}
 
 interface CharacterSelectorProps {
   onSelectCharacter: (character: Character) => void;
-  selectedCharacter: Character | null;
   maxCharacters?: number;
 }
 
@@ -23,46 +16,17 @@ const characters: Character[] = [
 
 const CharacterSelector: React.FC<CharacterSelectorProps> = ({ 
   onSelectCharacter, 
-  selectedCharacter, 
   maxCharacters = characters.length
 }) => {
-  const [characterPrompts, setCharacterPrompts] = useState<Record<string, string>>({});
   const visibleCharacters = characters.slice(0, maxCharacters);
 
-  useEffect(() => {
-    const loadPrompts = async () => {
-      const prompts: Record<string, string> = {};
-      for (const character of visibleCharacters) {
-        try {
-          const response = await fetch(`/src/prompts/${character.promptFile}`);
-          if (!response.ok) {
-            throw new Error(`Failed to load prompt for ${character.name}: ${response.statusText}`);
-          }
-          prompts[character.id] = await response.text();
-        } catch (error) {
-          console.error(`Failed to load prompt for ${character.name}:`, error);
-          prompts[character.id] = "Failed to load character prompt. Please try again later.";
-        }
-      }
-      setCharacterPrompts(prompts);
-    };
-
-    loadPrompts();
-  }, [visibleCharacters]);
-
-  const handleSelectCharacter = (character: Character) => {
-    onSelectCharacter({ ...character, prompt: characterPrompts[character.id] });
-  };
-
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {visibleCharacters.map((character) => (
         <div
           key={character.id}
-          className={`cursor-pointer transition-all duration-300 transform hover:scale-105 ${
-            selectedCharacter?.id === character.id ? 'ring-4 ring-yellow-400' : ''
-          }`}
-          onClick={() => handleSelectCharacter(character)}
+          className="cursor-pointer transition-all duration-300 transform hover:scale-105"
+          onClick={() => onSelectCharacter(character)}
         >
           <img
             src={character.image}
