@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2024-04-01
+
+### Changed
+- Moved prompts folder from src to public directory
+- Updated getCharacterPrompt function to load prompts from public directory
+- Removed src/utils/promptLoader.ts file
+- Updated getLLMResponse function to use new getCharacterPrompt function
+
+### Fixed
+- Resolved issues with loading character prompts
+
 ## [0.16.0] - 2024-03-31
 
 ### Changed
@@ -149,3 +160,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial project ideation
 - Defined project goals and target audience
+
+## [0.18.0] - 2024-04-02
+
+### Changed
+- Updated character prompts to prevent AI from revealing its virtual nature
+- Added additional filtering in llm-service.ts to remove content that might expose AI identity

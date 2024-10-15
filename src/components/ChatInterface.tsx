@@ -3,7 +3,7 @@ import { Send } from 'lucide-react';
 import { getLLMResponse } from '../services/llm-service';
 import { Character } from '../types/character';
 import { Message } from '../types/message';
-import { MAX_CHAT_HISTORY } from '../config/app-config';
+import { MAX_CHAT_HISTORY, USE_TYPEWRITER_MODE } from '../config/app-config';
 
 interface ChatInterfaceProps {
   selectedCharacter: Character;
@@ -19,6 +19,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [typingText, setTypingText] = useState('');
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -33,44 +34,60 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
-
     const userMessage = { text: inputMessage, isUser: true };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     setInputMessage('');
     setIsLoading(true);
-
-    let retries = 3;
-    while (retries > 0) {
-      try {
-        const characterPrompt = `记住，你是${selectedCharacter.name}，一个${selectedCharacter.profile || '温柔知性的倾听者'}。请保持角色设定，不要透露你是AI。不要泄露你不是真实的人类。`;
-        const aiPrompt = characterPrompt + inputMessage;
-
-        const response = await getLLMResponse(selectedCharacter.id, aiPrompt);
-        const aiMessage = { text: response.text, isUser: false };
+    setIsLoading(true);
+    try {
+      const response = await getLLMResponse(selectedCharacter.id, inputMessage);
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      const aiMessage = { text: response.text, isUser: false };
+      
+      if (USE_TYPEWRITER_MODE) {
+        setIsLoading(false);
+        let index = 0;
+        const interval = setInterval(() => {
+          if (index < response.text.length) {
+            setTypingText((prev) => prev + response.text[index]);
+            index++;
+          } else {
+            clearInterval(interval);
+            setMessages(prevMessages => {
+              const updatedMessages = [...prevMessages, aiMessage];
+              return updatedMessages.length > MAX_CHAT_HISTORY 
+                ? updatedMessages.slice(-MAX_CHAT_HISTORY) 
+                : updatedMessages;
+            });
+            setTypingText('');
+            onUpdateHistory([...newMessages, aiMessage]);
+          }
+        }, 50);
+      } else {
         setMessages(prevMessages => {
           const updatedMessages = [...prevMessages, aiMessage];
-          if (updatedMessages.length > MAX_CHAT_HISTORY) {
-            return updatedMessages.slice(-MAX_CHAT_HISTORY);
-          }
-          return updatedMessages;
+          return updatedMessages.length > MAX_CHAT_HISTORY 
+            ? updatedMessages.slice(-MAX_CHAT_HISTORY) 
+            : updatedMessages;
         });
         onUpdateHistory([...newMessages, aiMessage]);
-        break;
-      } catch (error) {
-        console.error('Error calling LLM API:', error);
-        retries--;
-        if (retries === 0) {
-          const errorMessage = { 
-            //text: "不好意思，我有点私事，需要处理一下，稍后再回复你哦^_^。错误详情：" + String(error), 
-            text: response.text, // 使用从 getLLMResponse 返回的错误消息
-            isUser: false 
-          };
-          setMessages(prevMessages => [...prevMessages, errorMessage]);
-        }
-      } finally {
         setIsLoading(false);
       }
+    } catch (error) {
+      console.error('Error in handleSendMessage:', error);
+      const errorMessage = { 
+        text: error instanceof Error ? error.message : '对不起，我现在遇到了一些技术问题。让我们稍后再聊吧。', 
+        isUser: false 
+      };
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
+      // 添加这行来记录完整的错误堆栈
+      console.error('Full error stack:', error instanceof Error ? error.stack : error);
+    } finally {
+      setIsLoading(false);
+      setTypingText('');
     }
   };
 
@@ -78,7 +95,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     <div className="bg-white bg-opacity-10 rounded-lg shadow-2xl p-6 h-full flex flex-col">
       <div 
         ref={chatContainerRef}
-        className="flex-grow overflow-y-auto mb-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent"
+        className="flex-grow overflow-y-auto mb-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent clearfix"
       >
         {messages.map((message, index) => (
           <div
@@ -86,17 +103,27 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             className={`mb-3 p-3 rounded-lg ${
               message.isUser
                 ? 'bg-[#81e6d9] text-gray-800 ml-auto'
-                : 'bg-gray-700 text-white'
-            } max-w-[80%]`}
+                : 'bg-gray-700 text-white mr-auto'
+            } inline-block max-w-[80%]`}
+            style={{
+              clear: 'both',
+              float: message.isUser ? 'right' : 'left'
+            }}
           >
             {message.text}
           </div>
         ))}
-        {isLoading && (
-          <div className="text-center text-gray-400">
-            {selectedCharacter.name} 正在输入消息...
+        {(USE_TYPEWRITER_MODE && typingText) || isLoading ? (
+          <div 
+            className="mb-3 p-3 rounded-lg bg-gray-700 text-white max-w-[80%]"
+            style={{
+              clear: 'both',
+              float: 'left'
+            }}
+          >
+            {typingText || `${selectedCharacter.name} 正在思考并输入消息....`}
           </div>
-        )}
+        ) : null}
       </div>
       <div className="flex">
         <input

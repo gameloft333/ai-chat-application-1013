@@ -22,13 +22,6 @@
   }
 }
 
-@font-face {
-  font-family: 'Belwe Bold';
-  src: url('/fonts/Belwe-Bold.woff2') format('woff2');
-  font-weight: bold;
-  font-style: normal;
-}
-
 .font-serif {
-  font-family: 'Belwe Bold', serif;
+  font-family: serif;
 }
