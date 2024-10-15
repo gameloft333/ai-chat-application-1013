@@ -94,7 +94,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         ))}
         {isLoading && (
           <div className="text-center text-gray-400">
-            正在输入消息....
+            {selectedCharacter.name} 正在输入消息...
           </div>
         )}
       </div>
