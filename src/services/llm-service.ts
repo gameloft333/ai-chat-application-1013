@@ -120,6 +120,10 @@ export async function getLLMResponse(characterId: string, prompt: string): Promi
     return await callLLMAPI(config.type, prompt, config.apiKey, config.modelName || '');
   } catch (error) {
     console.error('Error getting LLM response:', error);
-    return { text: 'I apologize, but I encountered an unexpected issue. Could you please try your request again?', error: String(error) };
+    if (error instanceof Error) {
+      return { text: `对不起，我现在有点不在状态。让我们稍后再聊吧。`, error: error.message };
+    } else {
+      return { text: '抱歉，我现在有点累了。我们待会儿再聊好吗？', error: String(error) };
+    }
   }
 }

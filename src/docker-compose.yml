@@ -1,0 +1,15 @@
+version: '3'
+services:
+  ai-chat-companions:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - REACT_APP_API_KEY=${REACT_APP_API_KEY}
+      - REACT_APP_API_URL=${REACT_APP_API_URL}
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+    restart: unless-stopped
+

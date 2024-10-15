@@ -19,10 +19,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   useEffect(() => {
@@ -30,40 +32,54 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }, [messages, onUpdateHistory]);
 
   const handleSendMessage = async () => {
-    if (inputMessage.trim() === '') return;
+    if (!inputMessage.trim()) return;
 
-    const userMessage: Message = { text: inputMessage, isUser: true };
-    setMessages(prevMessages => [...prevMessages, userMessage]);
+    const userMessage = { text: inputMessage, isUser: true };
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setInputMessage('');
     setIsLoading(true);
 
-    try {
-      const prompt = `${selectedCharacter.prompt}\n\nUser: ${inputMessage}\n\nAI:`;
-      const response = await getLLMResponse(selectedCharacter.id, prompt);
-      
-      const aiMessage: Message = {
-        text: response.text,
-        isUser: false,
-      };
-      setMessages(prevMessages => {
-        const updatedMessages = [...prevMessages, aiMessage];
-        return updatedMessages.slice(-MAX_CHAT_HISTORY);
-      });
-    } catch (error) {
-      console.error('Error getting LLM response:', error);
-      const errorMessage: Message = {
-        text: '我很抱歉,但我遇到了一个意外问题。您能再试一次吗?',
-        isUser: false,
-      };
-      setMessages(prevMessages => [...prevMessages, errorMessage]);
-    } finally {
-      setIsLoading(false);
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        const characterPrompt = `记住，你是${selectedCharacter.name}，一个${selectedCharacter.profile || '温柔知性的倾听者'}。请保持角色设定，不要透露你是AI。不要泄露你不是真实的人类。`;
+        const aiPrompt = characterPrompt + inputMessage;
+
+        const response = await getLLMResponse(selectedCharacter.id, aiPrompt);
+        const aiMessage = { text: response.text, isUser: false };
+        setMessages(prevMessages => {
+          const updatedMessages = [...prevMessages, aiMessage];
+          if (updatedMessages.length > MAX_CHAT_HISTORY) {
+            return updatedMessages.slice(-MAX_CHAT_HISTORY);
+          }
+          return updatedMessages;
+        });
+        onUpdateHistory([...newMessages, aiMessage]);
+        break;
+      } catch (error) {
+        console.error('Error calling LLM API:', error);
+        retries--;
+        if (retries === 0) {
+          const errorMessage = { 
+            //text: "不好意思，我有点私事，需要处理一下，稍后再回复你哦^_^。错误详情：" + String(error), 
+            text: response.text, // 使用从 getLLMResponse 返回的错误消息
+            isUser: false 
+          };
+          setMessages(prevMessages => [...prevMessages, errorMessage]);
+        }
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   return (
     <div className="bg-white bg-opacity-10 rounded-lg shadow-2xl p-6 h-full flex flex-col">
-      <div className="flex-grow overflow-y-auto mb-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent">
+      <div 
+        ref={chatContainerRef}
+        className="flex-grow overflow-y-auto mb-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent"
+      >
         {messages.map((message, index) => (
           <div
             key={index}
@@ -78,10 +94,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         ))}
         {isLoading && (
           <div className="text-center text-gray-400">
-            AI正在思考...
+            正在输入消息....
           </div>
         )}
-        <div ref={messagesEndRef} />
       </div>
       <div className="flex">
         <input
