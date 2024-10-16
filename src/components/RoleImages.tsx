@@ -19,7 +19,13 @@ const RoleImages: React.FC<RoleImagesProps> = ({ role }) => {
   return (
     <div className="flex justify-around">
       {placeholderImages.map((src, index) => (
-        <img key={index} src={src} alt={`${role} ${index + 1}`} className="w-1/4 rounded-lg" />
+        <img
+          key={index}
+          src={src}
+          alt={`${role} ${index + 1}`}
+          className="w-1/4 rounded-lg"
+          style={{ aspectRatio: '9 / 16', objectFit: 'cover' }} // 设置宽高比为 9:16，并使用 cover
+        />
       ))}
     </div>
   );

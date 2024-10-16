@@ -92,7 +92,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   return (
-    <div className="bg-white bg-opacity-10 rounded-lg shadow-2xl p-6 h-full flex flex-col">
+    <div className="bg-white bg-opacity-10 rounded-lg shadow-2xl p-6 flex flex-col h-full">
       <div 
         ref={chatContainerRef}
         className="flex-grow overflow-y-auto mb-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent clearfix"

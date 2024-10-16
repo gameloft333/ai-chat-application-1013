@@ -32,6 +32,8 @@ if not exist "%cd%" (
 
 :: Set npm path
 set "PATH=C:\Users\Administrator\AppData\Roaming\fnm\node-versions\v20.18.0\installation;%PATH%"
+set "PATH=C:\Windows\System32"
+set "PATH=C:\Program Files\Redis"
 
 :: Install dependencies
 echo Installing dependencies...
