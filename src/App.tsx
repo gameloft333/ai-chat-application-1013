@@ -65,14 +65,14 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a202c] to-[#2d3748] flex flex-col">
+    <div className="fullscreen bg-gradient-to-br from-[#1a202c] to-[#2d3748]">
       <header className="bg-black bg-opacity-50 text-white p-4 shadow-lg">
         <div className="container mx-auto flex items-center">
           <MessageCircle className="mr-3 text-[#81e6d9]" />
           <h1 className="text-2xl font-bold font-sans">AI Chat Companions</h1>
         </div>
       </header>
-      <main className="flex-grow container mx-auto p-4 flex flex-col">
+      <main className="chat-container container mx-auto p-4 flex flex-col">
         {selectedCharacter ? (
           <div className="flex flex-col lg:flex-row gap-4 h-full">
             <button
@@ -95,7 +95,7 @@ const App: React.FC = () => {
                 selectedCharacter={selectedCharacter}
                 initialMessages={chatHistory[selectedCharacter.id] || []}
                 onUpdateHistory={(messages) => updateChatHistory(selectedCharacter.id, messages)}
-                className="flex-grow h-full" // 确保聊天框占满剩余空间并与头像高度一致
+                className="flex-grow h-full"
               />
             </div>
           </div>
