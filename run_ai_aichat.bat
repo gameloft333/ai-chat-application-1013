@@ -35,7 +35,7 @@ set "PATH=C:\Users\Administrator\AppData\Roaming\fnm\node-versions\v20.18.0\inst
 
 :: Install dependencies
 echo Installing dependencies...
-npm install
+npm install --vebose
 
 if errorlevel 1 (
   echo Error: npm install failed.

@@ -3,7 +3,7 @@ services:
   ai-chat-companions:
     build: .
     ports:
-      - "3000:3000"
+      - "5173:3000"  # 将外部端口设置为 5173，内部端口保持为 3000
     environment:
       - NODE_ENV=production
       - REACT_APP_API_KEY=${REACT_APP_API_KEY}
@@ -12,4 +12,3 @@ services:
       - ./src:/app/src
       - ./public:/app/public
     restart: unless-stopped
-
