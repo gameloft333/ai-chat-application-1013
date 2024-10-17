@@ -5,16 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.17.0] - 2024-04-01
+## [0.19.3] - 2024-04-03
+
+### Added
+- Added voice support for AI characters. Users can now choose to receive responses as text, voice, or both.
+- Implemented a voice synthesis service to handle text-to-speech functionality.
 
 ### Changed
-- Moved prompts folder from src to public directory
-- Updated getCharacterPrompt function to load prompts from public directory
-- Removed src/utils/promptLoader.ts file
-- Updated getLLMResponse function to use new getCharacterPrompt function
-
-### Fixed
-- Resolved issues with loading character prompts
+- Updated ChatInterface to handle different response modes based on configuration.
 
 ## [0.16.0] - 2024-03-31
 

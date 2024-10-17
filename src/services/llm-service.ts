@@ -1,6 +1,8 @@
 import { LLMType, LLMResponse, LLMConfig } from '../types/llm';
 import { characterLLMConfig, defaultLLMConfig } from '../config/llm-config';
 import { LLM_MODULES } from '../config/llm-mapping';
+import { speak } from '../services/voice-service';
+import { AI_RESPONSE_MODE } from '../config/app-config'; // 确保导入配置
 
 async function callLLMAPI(type: LLMType, prompt: string, apiKey: string, modelName: string): Promise<LLMResponse> {
   if (!apiKey) {
@@ -199,16 +201,17 @@ async function callGeminiAPI(prompt: string, apiKey: string, modelName: string):
   return responseText;
 }
 
-async function getCharacterPrompt(characterId: string): Promise<string> {
+async function getCharacterPrompt(characterId: string): Promise<{ prompt: string; voice: string }> {
   try {
-    console.log(`Loading prompt for character ${characterId}`);
     const response = await fetch(`/prompts/${characterId}.txt`);
-    if (!response.ok) {
-      throw new Error(`Failed to load prompt for character ${characterId}`);
-    }
     const promptContent = await response.text();
-    console.log(`Prompt loaded successfully for ${characterId}`);
-    return promptContent;
+
+    // 解析角色配置，提取语音风格
+    const lines = promptContent.split('\n');
+    const voiceLine = lines.find(line => line.startsWith('Voice:'));
+    const voice = voiceLine ? voiceLine.split(':')[1].trim() : 'defaultVoice'; // 默认语音
+
+    return { prompt: promptContent, voice };
   } catch (error) {
     console.error(`Error loading prompt for character ${characterId}:`, error);
     throw new Error(`无法加载角色 ${characterId} 的提示`);
@@ -220,7 +223,7 @@ export async function getLLMResponse(characterId: string, prompt: string): Promi
 
   try {
     console.log(`Loading character prompt for ${characterId}`);
-    const characterPrompt = await getCharacterPrompt(characterId);
+    const { prompt: characterPrompt, voice } = await getCharacterPrompt(characterId);
     console.log(`Character prompt loaded successfully`);
 
     const fullPrompt = `${characterPrompt}\n\n用户: ${prompt}\n\n你:`;
@@ -232,7 +235,6 @@ export async function getLLMResponse(characterId: string, prompt: string): Promi
     const nameMatch = characterPrompt.match(/Name:\s*(\S+)/);
     if (nameMatch) {
       const correctName = nameMatch[1];
-      // 创建一个正则表达式来匹配常见的错误名字模式
       const wrongNamePattern = /(?:我叫|我是|你可以叫我)\s*([^，。！？,!?]+)/g;
       response.text = response.text.replace(wrongNamePattern, (match, wrongName) => {
         if (wrongName !== correctName) {
@@ -242,7 +244,12 @@ export async function getLLMResponse(characterId: string, prompt: string): Promi
       });
     }
 
-    return response;
+    // 根据配置决定是否播放语音
+    if (AI_RESPONSE_MODE === 'text_and_voice' || AI_RESPONSE_MODE === 'voice') {
+      speak(response.text, voice); // 播放语音
+    }
+
+    return response; // 返回响应
   } catch (error) {
     console.error(`Error in getLLMResponse for ${characterId}:`, error);
     return { text: `对不起，我现在遇到了一些问题。让我们稍后再聊吧。`, error: error instanceof Error ? error.message : String(error) };

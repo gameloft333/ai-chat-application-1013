@@ -3,7 +3,9 @@ import { Send } from 'lucide-react';
 import { getLLMResponse } from '../services/llm-service';
 import { Character } from '../types/character';
 import { Message } from '../types/message';
-import { MAX_CHAT_HISTORY, USE_TYPEWRITER_MODE } from '../config/app-config';
+import { MAX_CHAT_HISTORY, USE_TYPEWRITER_MODE, AI_RESPONSE_MODE } from '../config/app-config';
+import { speak } from '../services/voice-service';
+import ChatMessage from './ChatMessage'; // 导入 ChatMessage 组件
 
 interface ChatInterfaceProps {
   selectedCharacter: Character;
@@ -11,7 +13,7 @@ interface ChatInterfaceProps {
   onUpdateHistory: (messages: Message[]) => void;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ 
+const ChatInterface: React.FC<ChatInterfaceProps> = ({
   selectedCharacter, 
   initialMessages,
   onUpdateHistory
@@ -19,7 +21,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [typingText, setTypingText] = useState('');
+  const [thinkingMessage, setThinkingMessage] = useState<string | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,43 +41,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setMessages(newMessages);
     setInputMessage('');
     setIsLoading(true);
-    setIsLoading(true);
+    setThinkingMessage(`${selectedCharacter.name} 正在思考和输入消息...`); // 设置思考提示
+
     try {
       const response = await getLLMResponse(selectedCharacter.id, inputMessage);
-      if (response.error) {
-        throw new Error(response.error);
-      }
-      const aiMessage = { text: response.text, isUser: false };
-      
-      if (USE_TYPEWRITER_MODE) {
-        setIsLoading(false);
-        let index = 0;
-        const interval = setInterval(() => {
-          if (index < response.text.length) {
-            setTypingText((prev) => prev + response.text[index]);
-            index++;
-          } else {
-            clearInterval(interval);
-            setMessages(prevMessages => {
-              const updatedMessages = [...prevMessages, aiMessage];
-              return updatedMessages.length > MAX_CHAT_HISTORY 
-                ? updatedMessages.slice(-MAX_CHAT_HISTORY) 
-                : updatedMessages;
-            });
-            setTypingText('');
-            onUpdateHistory([...newMessages, aiMessage]);
-          }
-        }, 50);
-      } else {
-        setMessages(prevMessages => {
-          const updatedMessages = [...prevMessages, aiMessage];
-          return updatedMessages.length > MAX_CHAT_HISTORY 
-            ? updatedMessages.slice(-MAX_CHAT_HISTORY) 
-            : updatedMessages;
-        });
-        onUpdateHistory([...newMessages, aiMessage]);
-        setIsLoading(false);
-      }
+      setMessages(prevMessages => [...prevMessages, { text: response.text, isUser: false }]);
     } catch (error) {
       console.error('Error in handleSendMessage:', error);
       const errorMessage = { 
@@ -83,11 +53,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         isUser: false 
       };
       setMessages(prevMessages => [...prevMessages, errorMessage]);
-      // 添加这行来记录完整的错误堆栈
-      console.error('Full error stack:', error instanceof Error ? error.stack : error);
     } finally {
       setIsLoading(false);
-      setTypingText('');
+      setThinkingMessage(null); // 清除思考提示
     }
   };
 
@@ -98,32 +66,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
         className="flex-grow overflow-y-auto mb-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent clearfix"
       >
         {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`mb-3 p-3 rounded-lg ${
-              message.isUser
-                ? 'bg-[#81e6d9] text-gray-800 ml-auto'
-                : 'bg-gray-700 text-white mr-auto'
-            } inline-block max-w-[80%]`}
-            style={{
-              clear: 'both',
-              float: message.isUser ? 'right' : 'left'
-            }}
-          >
-            {message.text}
+          <div key={index} className="flex items-start mb-3">
+            {!message.isUser && (
+              <button onClick={() => speak(message.text, "voice_lily")} className="mr-2">
+                <img src="/public/ui_icons/speaker-icon.png" alt="语音图标" className="w-6 h-6" />
+              </button>
+            )}
+            <div className={`p-3 rounded-lg ${message.isUser ? 'bg-[#81e6d9] text-gray-800 ml-auto' : 'bg-gray-700 text-white mr-auto'}`}>
+              {message.text}
+            </div>
           </div>
         ))}
-        {(USE_TYPEWRITER_MODE && typingText) || isLoading ? (
-          <div 
-            className="mb-3 p-3 rounded-lg bg-gray-700 text-white max-w-[80%]"
-            style={{
-              clear: 'both',
-              float: 'left'
-            }}
-          >
-            {typingText || `${selectedCharacter.name} 正在思考并输入消息....`}
-          </div>
-        ) : null}
+        {thinkingMessage && (
+          <div className="text-gray-500 italic">{thinkingMessage}</div> // 显示思考提示
+        )}
       </div>
       <div className="flex">
         <input

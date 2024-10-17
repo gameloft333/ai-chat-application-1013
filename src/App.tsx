@@ -4,6 +4,7 @@ import CharacterSelector from './components/CharacterSelector';
 import { MessageCircle, ArrowLeft } from 'lucide-react';
 import { Character } from './types/character';
 import { CLEAR_MEMORY_ON_RESTART } from './config/app-config';
+import ChatMessage from './ChatMessage';
 const API_KEY = import.meta.env.VITE_API_KEY || '';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
